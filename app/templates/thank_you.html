@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<meta http-equiv="refresh" content="5;url=/" />
+<div class="mx-auto max-w-2xl text-center">
+    <p class="text-sm font-semibold uppercase tracking-[0.35em] text-emerald-600">Vote Recorded</p>
+    <h1 class="mt-4 font-display text-5xl text-ink md:text-6xl">Thank you</h1>
+    <p class="mt-4 text-lg leading-8 text-muted">Your ballot has been securely submitted. This screen will return to the login page in 5 seconds.</p>
+    <a class="mt-10 inline-block rounded-2xl border border-line bg-white px-6 py-4 text-lg font-bold text-ink transition hover:bg-slate-50" href="/">
+        Return Now
+    </a>
+</div>
+{% endblock %}

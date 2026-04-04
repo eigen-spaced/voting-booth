@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+
+voting_booth.db
+voter_creds.txt
+results.csv
+voters.csv
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

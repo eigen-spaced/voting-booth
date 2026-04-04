@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title or "Voting Booth" }}</title>
+    {% if disable_cache %}
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    {% endif %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:wght@600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        shell: "#f5fbff",
+                        ink: "#094477",
+                        muted: "#527490",
+                        line: "#cfe4f2",
+                        panel: "#ffffff",
+                        brand: "#0193e0",
+                        brandSoft: "#e5f6ff",
+                        goldSoft: "#edf8ff",
+                        successSoft: "#e9f9f3",
+                        warningSoft: "#edf8ff",
+                        dangerSoft: "#fff0f0",
+                    },
+                    fontFamily: {
+                        sans: ["Plus Jakarta Sans", "ui-sans-serif", "system-ui", "sans-serif"],
+                        display: ["Fraunces", "ui-serif", "Georgia", "serif"],
+                    },
+                    boxShadow: {
+                        panel: "0 24px 60px rgba(9, 68, 119, 0.10)",
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+<body class="min-h-screen bg-shell font-sans text-ink antialiased">
+    <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(1,147,224,0.14),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(9,68,119,0.08),_transparent_22%),linear-gradient(180deg,_#ffffff,_#eff9ff)]">
+        <main class="mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-4 py-8 sm:px-6 lg:px-8">
+            <section class="w-full rounded-[32px] border border-white/70 bg-white/86 p-6 shadow-panel backdrop-blur md:p-10 lg:p-12">
+                {% block content %}{% endblock %}
+            </section>
+        </main>
+    </div>
+    {% if disable_cache %}
+    <script>
+        window.addEventListener("pageshow", function (event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
+    </script>
+    {% endif %}
+</body>
+</html>

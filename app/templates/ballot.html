@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mx-auto max-w-4xl">
+    <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.3em] text-brand">Ballot</p>
+            <h1 class="mt-3 font-display text-4xl leading-tight text-ink md:text-5xl">Choose your Head Boy and Head Girl</h1>
+            <p class="mt-3 text-lg text-muted">Logged in as <span class="font-semibold text-ink">{{ voter_name }}</span>.</p>
+        </div>
+        <a class="rounded-2xl border border-line bg-white px-5 py-3 text-center text-base font-semibold text-ink transition hover:bg-slate-50" href="/logout">Cancel</a>
+    </div>
+
+    {% if error %}
+    <div class="mt-8 rounded-2xl border border-amber-200 bg-warningSoft px-6 py-4 text-base font-medium text-amber-800">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <form class="mt-10" method="post" action="/confirm">
+        <div class="grid gap-6 lg:grid-cols-2">
+            <section class="rounded-[28px] border border-line bg-white p-6 shadow-sm">
+                <p class="text-sm font-semibold uppercase tracking-[0.28em] text-brand">Head Boy</p>
+                <div class="mt-5 space-y-4">
+                    {% for candidate in candidates_by_category["Head Boy"] %}
+                    <label class="flex cursor-pointer items-center gap-5 rounded-[19px] border border-line bg-[#fbfcfe] px-5 py-3 transition hover:border-brand hover:bg-brandSoft/50">
+                        <input class="h-6 w-6 accent-brand" type="radio" name="head_boy_candidate_id" value="{{ candidate.id }}" {% if selected_head_boy_id == candidate.id %}checked{% endif %}>
+                        <span class="text-xl font-semibold text-ink">{{ candidate.name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="rounded-[28px] border border-line bg-white p-6 shadow-sm">
+                <p class="text-sm font-semibold uppercase tracking-[0.28em] text-brand">Head Girl</p>
+                <div class="mt-5 space-y-4">
+                    {% for candidate in candidates_by_category["Head Girl"] %}
+                    <label class="flex cursor-pointer items-center gap-5 rounded-[19px] border border-line bg-[#fbfcfe] px-5 py-3 transition hover:border-brand hover:bg-brandSoft/50">
+                        <input class="h-6 w-6 accent-brand" type="radio" name="head_girl_candidate_id" value="{{ candidate.id }}" {% if selected_head_girl_id == candidate.id %}checked{% endif %}>
+                        <span class="text-xl font-semibold text-ink">{{ candidate.name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </section>
+        </div>
+
+        <button class="mt-8 w-full rounded-2xl bg-brand px-6 py-4 text-xl font-bold text-white transition hover:bg-[#1458c2]" type="submit">
+            Review Selection
+        </button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mx-auto max-w-5xl">
+    <div class="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+        <div class="text-center lg:text-left">
+            <p class="text-sm font-semibold uppercase tracking-[0.35em] text-brand">Admin Access</p>
+            <h1 class="mt-5 font-display text-5xl leading-tight text-ink md:text-6xl">Election control panel</h1>
+            <p class="mt-5 max-w-xl text-lg leading-8 text-muted">Use the admin account to manage candidates, voters, and exports. This area is protected by an admin username, password, secret key, and signed session.</p>
+            <div class="mt-8 rounded-[28px] border border-line bg-[#f8fafc] p-6 text-left">
+                <p class="text-sm font-semibold uppercase tracking-[0.28em] text-muted">Available Actions</p>
+                <div class="mt-4 grid gap-3 text-sm text-ink">
+                    <div class="rounded-2xl bg-white px-4 py-3">Manage candidates and voter records.</div>
+                    <div class="rounded-2xl bg-white px-4 py-3">Reset voter codes or voting status when necessary.</div>
+                    <div class="rounded-2xl bg-white px-4 py-3">Review turnout and export vote totals to CSV.</div>
+                </div>
+            </div>
+        </div>
+        <div class="rounded-[28px] border border-line bg-white p-6 shadow-sm sm:p-8">
+            <p class="text-sm font-semibold uppercase tracking-[0.28em] text-muted">Administrator Sign In</p>
+    {% if error %}
+    <div class="mt-6 rounded-2xl border border-rose-200 bg-dangerSoft px-6 py-4 text-base font-medium text-rose-700">
+        {{ error }}
+    </div>
+    {% endif %}
+            <form class="mt-6 space-y-5 text-left" method="post" action="/admin/login">
+        <div>
+                    <label class="mb-2 block text-sm font-semibold uppercase tracking-[0.18em] text-muted" for="username">Admin Username</label>
+                    <input class="w-full rounded-2xl border border-line bg-[#fbfcfe] px-5 py-4 text-xl text-ink outline-none focus:border-brand focus:ring-4 focus:ring-brand/10" id="username" name="username" required>
+        </div>
+        <div>
+                    <label class="mb-2 block text-sm font-semibold uppercase tracking-[0.18em] text-muted" for="password">Admin Password</label>
+                    <input class="w-full rounded-2xl border border-line bg-[#fbfcfe] px-5 py-4 text-xl text-ink outline-none focus:border-brand focus:ring-4 focus:ring-brand/10" id="password" name="password" type="password" required>
+        </div>
+        <div>
+                    <label class="mb-2 block text-sm font-semibold uppercase tracking-[0.18em] text-muted" for="secret_key">Admin Secret Key</label>
+                    <input class="w-full rounded-2xl border border-line bg-[#fbfcfe] px-5 py-4 text-xl text-ink outline-none focus:border-brand focus:ring-4 focus:ring-brand/10" id="secret_key" name="secret_key" type="password" required>
+        </div>
+                <button class="w-full rounded-2xl bg-ink px-6 py-4 text-xl font-bold text-white transition hover:bg-[#243148]" type="submit">
+                    Sign In
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
