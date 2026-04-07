@@ -67,7 +67,7 @@ def format_dubai_time(value: datetime | None) -> str:
         return "Not recorded"
     dubai_tz = timezone(timedelta(hours=4))
     normalized = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
-    return normalized.astimezone(dubai_tz).strftime("%Y-%m-%d %H:%M:%S")
+    return normalized.astimezone(dubai_tz).strftime("%H:%M %d/%m/%Y")
 
 
 def touch_admin_activity(request: Request) -> None:
