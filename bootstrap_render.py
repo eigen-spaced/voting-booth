@@ -1,9 +1,9 @@
 from sqlalchemy import select
 
-from app.config import CREDENTIALS_PATH, VOTER_CODE_DIGITS
+from app.config import CREDENTIALS_PATH
 from app.database import Base, SessionLocal, engine, ensure_schema
 from app.models import Candidate, Voter
-from init_db import DEFAULT_CANDIDATES, export_credentials, seed_database
+from init_db import export_credentials
 
 
 def existing_credentials() -> list[tuple[str, str]]:
@@ -20,9 +20,7 @@ def main() -> None:
         voter_count = db.query(Voter).count()
 
     if candidate_count == 0 and voter_count == 0:
-        credentials = seed_database(DEFAULT_CANDIDATES, 10, VOTER_CODE_DIGITS)
-        export_credentials(credentials, CREDENTIALS_PATH)
-        print(f"Bootstrapped database and exported credentials to {CREDENTIALS_PATH}")
+        print("Database is empty. No automatic seed was applied.")
         return
 
     if not CREDENTIALS_PATH.exists():
@@ -30,7 +28,7 @@ def main() -> None:
         print(f"Rebuilt missing credentials export at {CREDENTIALS_PATH}")
         return
 
-    print("Bootstrap skipped; existing election data detected.")
+    print("Schema check completed; existing election data preserved.")
 
 
 if __name__ == "__main__":

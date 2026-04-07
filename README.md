@@ -67,7 +67,6 @@ This project is configured for:
 
 - Render native Python web service
 - SQLite on a persistent disk
-- First-boot automatic data bootstrap
 - Environment-variable managed secrets
 
 Files involved:
@@ -93,12 +92,9 @@ Files involved:
 ### What Happens on First Deploy
 
 - Render mounts the persistent disk at `/var/data`
-- `bootstrap_render.py` runs before the app starts
-- If no election data exists yet, it seeds:
-  - 6 default candidates
-  - 10 default voters
-  - `/var/data/voter_creds.txt`
-- If data already exists, bootstrap does nothing and preserves the current election state
+- The app creates missing tables and applies non-destructive schema updates
+- It does not auto-seed candidates or voters on deployment
+- Election data should be loaded intentionally through the admin panel or a manual one-time initialization step
 
 ### Recommended Render Settings
 
@@ -110,9 +106,14 @@ Files involved:
 
 1. Open `/admin/login`
 2. Sign in with the Render environment credentials
-3. Confirm candidates and voters look correct
-4. Retrieve `voter_creds.txt` from the persistent disk if you need the seeded voter codes
-5. Replace the seeded voters with a CSV import if the real voter list differs
+3. Add candidates and import voters from the admin panel
+4. Export the generated voter codes once the import is complete
+
+### Important Safety Note
+
+- Do not run `init_db.py` against production. It deletes and recreates the SQLite database by design.
+- Render deployments now start with `uvicorn` only and do not run any auto-seeding step.
+- The only remaining destructive reset path is the explicit `init_db.py` script, which should be treated as a development/local setup tool.
 
 ### Notes
 

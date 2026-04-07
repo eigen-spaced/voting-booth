@@ -3,7 +3,7 @@ services:
     name: voting-booth
     runtime: python
     buildCommand: pip install -r requirements.txt
-    startCommand: python bootstrap_render.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /healthz
     disk:
       name: voting-booth-data
