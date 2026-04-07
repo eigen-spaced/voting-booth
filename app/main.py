@@ -95,21 +95,23 @@ def admin_login_context(request: Request, error: str | None = None) -> dict:
     return {"request": request, "error": error, "disable_cache": True}
 
 
-def admin_dashboard_context(request: Request, db: Session) -> dict:
+def admin_dashboard_context(request: Request, db: Session, sort_by: str) -> dict:
     notice, notice_level = pop_admin_notice(request)
+    normalized_sort = sort_by if sort_by in {"name", "class"} else "class"
     return {
         "request": request,
         "admin_username": current_admin(request),
         "csrf_token": get_admin_csrf_token(request),
         "notice": notice,
         "notice_level": notice_level,
-        "voters": get_voters(db),
+        "voters": get_voters(db, normalized_sort),
         "candidate_categories": CANDIDATE_CATEGORIES,
         "candidates_by_category": get_candidates_by_category(db),
         "results_by_category": get_results_by_category(db),
         "export_url": f"/admin/export?key={ADMIN_SECRET_KEY}",
         "voter_export_url": f"/admin/voters/export?key={ADMIN_SECRET_KEY}",
         "code_digits": VOTER_CODE_DIGITS,
+        "voter_sort": normalized_sort,
         "disable_cache": True,
     }
 
@@ -324,10 +326,10 @@ def admin_login(
 
 
 @app.get("/admin", response_class=HTMLResponse)
-def admin_dashboard(request: Request, db: Session = Depends(get_db)):
+def admin_dashboard(request: Request, sort: str = Query("class"), db: Session = Depends(get_db)):
     if not ensure_admin_session(request):
         return apply_no_store(RedirectResponse("/admin/login", status_code=status.HTTP_303_SEE_OTHER))
-    return apply_no_store(templates.TemplateResponse("admin_dashboard.html", admin_dashboard_context(request, db)))
+    return apply_no_store(templates.TemplateResponse("admin_dashboard.html", admin_dashboard_context(request, db, sort)))
 
 
 @app.get("/admin/export")

@@ -98,8 +98,12 @@ def get_results_by_category(db: Session) -> dict[str, list[tuple[str, int]]]:
     return grouped
 
 
-def get_voters(db: Session) -> Sequence[Voter]:
-    return db.execute(select(Voter).order_by(Voter.class_name.asc(), Voter.name.asc())).scalars().all()
+def get_voters(db: Session, sort_by: str = "class") -> Sequence[Voter]:
+    if sort_by == "name":
+        ordering = (Voter.name.asc(), Voter.class_name.asc())
+    else:
+        ordering = (Voter.class_name.asc(), Voter.name.asc())
+    return db.execute(select(Voter).order_by(*ordering)).scalars().all()
 
 
 def get_voter_names(db: Session) -> list[str]:

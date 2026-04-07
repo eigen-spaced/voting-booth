@@ -89,6 +89,16 @@
             </form>
 
             <div class="mt-6 overflow-hidden rounded-[24px] border border-line">
+                <div class="flex items-center justify-between border-b border-line bg-[#f7f9fc] px-4 py-3">
+                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-muted">Voter List</p>
+                    <form method="get" action="/admin" class="flex items-center gap-3">
+                        <label class="text-sm font-semibold text-muted" for="sort">Order by</label>
+                        <select class="rounded-xl border border-line bg-white px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-brand focus:ring-4 focus:ring-brand/10" id="sort" name="sort" onchange="this.form.submit()">
+                            <option value="class" {% if voter_sort == "class" %}selected{% endif %}>Class</option>
+                            <option value="name" {% if voter_sort == "name" %}selected{% endif %}>Name</option>
+                        </select>
+                    </form>
+                </div>
                 <table class="min-w-full text-left text-sm">
                     <thead class="bg-[#f7f9fc] text-muted">
                         <tr class="border-b border-line">
