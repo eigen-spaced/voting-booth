@@ -16,7 +16,18 @@ DEFAULT_CANDIDATES = [
     (HEAD_GIRL, "Mia Turner"),
 ]
 
-DEFAULT_VOTER_NAMES = [f"Voter {index:03d}" for index in range(1, 11)]
+DEFAULT_VOTERS = [
+    ("Voter 001", "5A"),
+    ("Voter 002", "5A"),
+    ("Voter 003", "5B"),
+    ("Voter 004", "5B"),
+    ("Voter 005", "5C"),
+    ("Voter 006", "5C"),
+    ("Voter 007", "4A"),
+    ("Voter 008", "4A"),
+    ("Voter 009", "4B"),
+    ("Voter 010", "4B"),
+]
 
 
 def generate_code(length: int = 6) -> str:
@@ -31,22 +42,25 @@ def reset_database() -> None:
     Base.metadata.create_all(bind=engine)
 
 
-def build_voter_names(voter_count: int) -> list[str]:
-    if voter_count <= len(DEFAULT_VOTER_NAMES):
-        return DEFAULT_VOTER_NAMES[:voter_count]
-    return DEFAULT_VOTER_NAMES + [f"Voter {index:03d}" for index in range(len(DEFAULT_VOTER_NAMES) + 1, voter_count + 1)]
+def build_voters(voter_count: int) -> list[tuple[str, str]]:
+    if voter_count <= len(DEFAULT_VOTERS):
+        return DEFAULT_VOTERS[:voter_count]
+    voters = list(DEFAULT_VOTERS)
+    for index in range(len(DEFAULT_VOTERS) + 1, voter_count + 1):
+        voters.append((f"Voter {index:03d}", "Unassigned"))
+    return voters
 
 
 def seed_database(candidates: list[tuple[str, str]], voter_count: int, code_digits: int) -> list[tuple[str, str]]:
     credentials: list[tuple[str, str]] = []
-    voter_names = build_voter_names(voter_count)
+    voters = build_voters(voter_count)
     with SessionLocal() as db:
         for category, name in candidates:
             db.add(Candidate(name=name, category=category))
 
-        for voter_name in voter_names:
+        for voter_name, class_name in voters:
             code = generate_code(code_digits)
-            db.add(Voter(name=voter_name, code=code))
+            db.add(Voter(name=voter_name, class_name=class_name, code=code))
             credentials.append((voter_name, code))
 
         db.commit()

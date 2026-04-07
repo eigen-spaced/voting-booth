@@ -99,7 +99,7 @@ def get_results_by_category(db: Session) -> dict[str, list[tuple[str, int]]]:
 
 
 def get_voters(db: Session) -> Sequence[Voter]:
-    return db.execute(select(Voter).order_by(Voter.name.asc())).scalars().all()
+    return db.execute(select(Voter).order_by(Voter.class_name.asc(), Voter.name.asc())).scalars().all()
 
 
 def get_voter_names(db: Session) -> list[str]:
@@ -135,11 +135,13 @@ def delete_candidate(db: Session, candidate_id: int) -> None:
     db.commit()
 
 
-def create_voter(db: Session, name: str, code_digits: int) -> tuple[Voter, str]:
+def create_voter(db: Session, name: str, class_name: str, code_digits: int) -> tuple[Voter, str]:
     if not name:
         raise AdminActionError("Voter name cannot be blank.")
+    if not class_name:
+        raise AdminActionError("Class cannot be blank.")
     code = "".join(secrets.choice("0123456789") for _ in range(code_digits))
-    voter = Voter(name=name, code=code, has_voted=False, voted_at=None)
+    voter = Voter(name=name, class_name=class_name, code=code, has_voted=False, voted_at=None)
     db.add(voter)
     try:
         db.commit()
@@ -171,7 +173,7 @@ def reset_voter_code(db: Session, voter_id: int, code_digits: int) -> tuple[Vote
     return voter, code
 
 
-def parse_voter_csv(content: bytes, code_digits: int) -> list[tuple[str, str]]:
+def parse_voter_csv(content: bytes, code_digits: int) -> list[tuple[str, str, str]]:
     try:
         text = content.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
@@ -182,29 +184,28 @@ def parse_voter_csv(content: bytes, code_digits: int) -> list[tuple[str, str]]:
         raise AdminActionError("CSV file must include a header row.")
 
     headers = {field.strip().lower(): field for field in reader.fieldnames if field}
-    if "name" not in headers or "code" not in headers:
-        raise AdminActionError('CSV file must include "name" and "code" columns.')
+    if "name" not in headers or "class" not in headers:
+        raise AdminActionError('CSV file must include "name" and "class" columns.')
 
-    voters: list[tuple[str, str]] = []
+    voters: list[tuple[str, str, str]] = []
     seen_names: set[str] = set()
     for row in reader:
         name = (row.get(headers["name"]) or "").strip()
-        code = (row.get(headers["code"]) or "").strip()
-        if not name or not code:
-            raise AdminActionError("Every voter row must include both name and code.")
-        if not code.isdigit() or len(code) != code_digits:
-            raise AdminActionError(f"Every voter code must be exactly {code_digits} digits.")
+        class_name = (row.get(headers["class"]) or "").strip()
+        if not name or not class_name:
+            raise AdminActionError("Every voter row must include both name and class.")
         if name in seen_names:
             raise AdminActionError("Voter names must be unique within the CSV file.")
         seen_names.add(name)
-        voters.append((name, code))
+        code = "".join(secrets.choice("0123456789") for _ in range(code_digits))
+        voters.append((name, class_name, code))
 
     if not voters:
         raise AdminActionError("CSV file does not contain any voter rows.")
     return voters
 
 
-def import_voters(db: Session, voters: list[tuple[str, str]], replace_existing: bool) -> int:
+def import_voters(db: Session, voters: list[tuple[str, str, str]], replace_existing: bool) -> int:
     existing_voter_count = db.execute(select(func.count(Voter.id))).scalar_one()
     existing_vote_count = db.execute(select(func.count(Vote.id))).scalar_one()
 
@@ -216,8 +217,8 @@ def import_voters(db: Session, voters: list[tuple[str, str]], replace_existing: 
     try:
         if replace_existing:
             db.execute(delete(Voter))
-        for name, code in voters:
-            db.add(Voter(name=name, code=code, has_voted=False, voted_at=None))
+        for name, class_name, code in voters:
+            db.add(Voter(name=name, class_name=class_name, code=code, has_voted=False, voted_at=None))
         db.commit()
     except IntegrityError as exc:
         db.rollback()

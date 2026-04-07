@@ -16,6 +16,7 @@ class Voter(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    class_name: Mapped[str] = mapped_column(String(20), nullable=False, default="Unassigned")
     code: Mapped[str] = mapped_column(String(20), nullable=False)
     has_voted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     voted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

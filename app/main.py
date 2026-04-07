@@ -359,9 +359,9 @@ def export_voters(request: Request, key: str = Query(...), db: Session = Depends
     output = io.StringIO()
     import csv
     writer = csv.writer(output)
-    writer.writerow(["Name", "Code", "Has Voted", "Voted At"])
+    writer.writerow(["Name", "Class", "Code", "Has Voted", "Voted At"])
     for voter in get_voters(db):
-        writer.writerow([voter.name, voter.code, "Yes" if voter.has_voted else "No", voter.voted_at.isoformat() if voter.voted_at else ""])
+        writer.writerow([voter.name, voter.class_name, voter.code, "Yes" if voter.has_voted else "No", voter.voted_at.isoformat() if voter.voted_at else ""])
 
     response = StreamingResponse(iter([output.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = 'attachment; filename="voters.csv"'
@@ -405,13 +405,14 @@ def remove_admin_candidate(
 def add_admin_voter(
     request: Request,
     voter_name: str = Form(...),
+    voter_class: str = Form(...),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
 ):
     validate_admin_request(request, csrf_token)
     try:
-        voter, code = create_voter(db, voter_name.strip(), VOTER_CODE_DIGITS)
-        set_admin_notice(request, f'Voter "{voter.name}" added. New code: {code}')
+        voter, code = create_voter(db, voter_name.strip(), voter_class.strip(), VOTER_CODE_DIGITS)
+        set_admin_notice(request, f'Voter "{voter.name}" ({voter.class_name}) added. New code: {code}')
     except AdminActionError as exc:
         set_admin_notice(request, str(exc), "error")
     return RedirectResponse("/admin", status_code=status.HTTP_303_SEE_OTHER)

@@ -22,8 +22,12 @@ def ensure_schema() -> None:
         voter_columns = {row[1] for row in connection.execute(text("PRAGMA table_info(voters)"))}
         if "voted_at" not in voter_columns:
             connection.execute(text("ALTER TABLE voters ADD COLUMN voted_at DATETIME"))
+        if "class_name" not in voter_columns:
+            connection.execute(text("ALTER TABLE voters ADD COLUMN class_name TEXT"))
+            connection.execute(text("UPDATE voters SET class_name = 'Unassigned' WHERE class_name IS NULL OR TRIM(class_name) = ''"))
         if "code" not in voter_columns:
             connection.execute(text("ALTER TABLE voters ADD COLUMN code TEXT"))
+        connection.execute(text("UPDATE voters SET class_name = 'Unassigned' WHERE class_name IS NULL OR TRIM(class_name) = ''"))
         missing_codes = connection.execute(text("SELECT id FROM voters WHERE code IS NULL OR TRIM(code) = ''")).fetchall()
         for row in missing_codes:
             code = "".join(secrets.choice("0123456789") for _ in range(VOTER_CODE_DIGITS))
