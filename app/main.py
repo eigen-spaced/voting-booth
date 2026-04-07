@@ -1,5 +1,6 @@
 import io
 import secrets
+from datetime import datetime, timedelta, timezone
 from hmac import compare_digest
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile, status
@@ -9,7 +10,14 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.config import ADMIN_PASSWORD, ADMIN_SECRET_KEY, ADMIN_USERNAME, SESSION_SECRET_KEY, VOTER_CODE_DIGITS
+from app.config import (
+    ADMIN_PASSWORD,
+    ADMIN_SECRET_KEY,
+    ADMIN_SESSION_TIMEOUT_SECONDS,
+    ADMIN_USERNAME,
+    SESSION_SECRET_KEY,
+    VOTER_CODE_DIGITS,
+)
 from app.crud import (
     AdminActionError,
     AlreadyVotedError,
@@ -50,8 +58,35 @@ def current_admin(request: Request) -> str | None:
     return request.session.get("admin_username")
 
 
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def touch_admin_activity(request: Request) -> None:
+    request.session["admin_last_seen"] = utc_now().isoformat()
+
+
 def ensure_admin_session(request: Request) -> bool:
-    return bool(request.session.get("is_admin") and current_admin(request) == ADMIN_USERNAME)
+    if not (request.session.get("is_admin") and current_admin(request) == ADMIN_USERNAME):
+        return False
+
+    last_seen_raw = request.session.get("admin_last_seen")
+    if not last_seen_raw:
+        request.session.clear()
+        return False
+
+    try:
+        last_seen = datetime.fromisoformat(last_seen_raw)
+    except ValueError:
+        request.session.clear()
+        return False
+
+    if utc_now() - last_seen > timedelta(seconds=ADMIN_SESSION_TIMEOUT_SECONDS):
+        request.session.clear()
+        return False
+
+    touch_admin_activity(request)
+    return True
 
 
 def get_admin_csrf_token(request: Request) -> str:
@@ -322,6 +357,7 @@ def admin_login(
     request.session["is_admin"] = True
     request.session["admin_username"] = ADMIN_USERNAME
     request.session["admin_csrf_token"] = secrets.token_urlsafe(32)
+    touch_admin_activity(request)
     return apply_no_store(RedirectResponse("/admin", status_code=status.HTTP_303_SEE_OTHER))
 
 
