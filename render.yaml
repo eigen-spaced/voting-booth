@@ -14,8 +14,6 @@ services:
         value: /var/data
       - key: DATABASE_PATH
         value: /var/data/voting_booth.db
-      - key: CREDENTIALS_PATH
-        value: /var/data/voter_creds.txt
       - key: SESSION_SECRET_KEY
         generateValue: true
       - key: ADMIN_USERNAME

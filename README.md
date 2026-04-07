@@ -99,21 +99,29 @@ Files involved:
 ### Recommended Render Settings
 
 - Keep the persistent disk mount path as `/var/data`
+- Keep the SQLite database on the disk at `/var/data/voting_booth.db`
 - Do not commit local `voting_booth.db` or `voter_creds.txt`
 - Use strong custom values for `ADMIN_PASSWORD`, `ADMIN_SECRET_KEY`, and keep the generated `SESSION_SECRET_KEY`
+- The only production storage path that matters is the SQLite database path
 
 ### After Deploy
 
 1. Open `/admin/login`
 2. Sign in with the Render environment credentials
 3. Add candidates and import voters from the admin panel
-4. Export the generated voter codes once the import is complete
+4. Export the generated voter codes from the admin panel once the import is complete
 
 ### Important Safety Note
 
 - Do not run `init_db.py` against production. It deletes and recreates the SQLite database by design.
 - Render deployments now start with `uvicorn` only and do not run any auto-seeding step.
 - The only remaining destructive reset path is the explicit `init_db.py` script, which should be treated as a development/local setup tool.
+
+### Production Storage Summary
+
+- Production persistence depends on the Render disk mounted at `/var/data`
+- Production database path should be `/var/data/voting_booth.db`
+- `CREDENTIALS_PATH` is only a local/dev convenience and is not required for normal production operation
 
 ### Notes
 

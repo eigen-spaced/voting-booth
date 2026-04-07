@@ -62,6 +62,14 @@ def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def format_dubai_time(value: datetime | None) -> str:
+    if value is None:
+        return "Not recorded"
+    dubai_tz = timezone(timedelta(hours=4))
+    normalized = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+    return normalized.astimezone(dubai_tz).strftime("%Y-%m-%d %H:%M:%S")
+
+
 def touch_admin_activity(request: Request) -> None:
     request.session["admin_last_seen"] = utc_now().isoformat()
 
@@ -113,6 +121,9 @@ def apply_no_store(response):
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
     return response
+
+
+templates.env.globals["format_dubai_time"] = format_dubai_time
 
 
 def login_context(request: Request, db: Session, error: str | None = None, form_name: str = "") -> dict:

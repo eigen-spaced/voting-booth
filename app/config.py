@@ -3,7 +3,9 @@ from pathlib import Path
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = Path(os.getenv("DATA_DIR", str(BASE_DIR)))
+RUNNING_ON_RENDER = bool(os.getenv("RENDER")) or bool(os.getenv("RENDER_EXTERNAL_HOSTNAME"))
+DEFAULT_DATA_DIR = Path("/var/data") if RUNNING_ON_RENDER else BASE_DIR
+DATA_DIR = Path(os.getenv("DATA_DIR", str(DEFAULT_DATA_DIR)))
 DATABASE_PATH = Path(os.getenv("DATABASE_PATH", str(DATA_DIR / "voting_booth.db")))
 CREDENTIALS_PATH = Path(os.getenv("CREDENTIALS_PATH", str(DATA_DIR / "voter_creds.txt")))
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATABASE_PATH}")

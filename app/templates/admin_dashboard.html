@@ -128,7 +128,7 @@
                                 <span class="rounded-full bg-[#eef2f8] px-3 py-1 text-slate-600">Not voted</span>
                                 {% endif %}
                             </td>
-                            <td class="px-3 py-4 text-muted">{{ voter.voted_at.strftime("%Y-%m-%d %H:%M:%S UTC") if voter.voted_at else "Not recorded" }}</td>
+                            <td class="px-3 py-4 text-muted">{{ format_dubai_time(voter.voted_at) }}</td>
                             <td class="px-3 py-4">
                                 <div class="flex flex-wrap gap-2">
                                     <form method="post" action="/admin/voters/{{ voter.id }}/reset-code">
