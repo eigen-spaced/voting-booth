@@ -7,11 +7,10 @@
             <h1 class="mt-3 font-display text-5xl leading-tight text-ink md:text-6xl">Election management</h1>
             <p class="mt-3 text-lg text-muted">Signed in as <span class="font-semibold text-ink">{{ admin_username }}</span>.</p>
         </div>
-        <div class="flex flex-wrap gap-3">
-            <a class="rounded-2xl border border-line bg-white px-5 py-3 text-base font-semibold text-ink transition hover:bg-brandSoft" href="{{ export_url }}">Export Results CSV</a>
-            <a class="rounded-2xl border border-line bg-white px-5 py-3 text-base font-semibold text-ink transition hover:bg-brandSoft" href="{{ voter_export_url }}">Export Voters CSV</a>
-            <a class="rounded-2xl border border-rose-200 bg-white px-5 py-3 text-base font-semibold text-rose-700 transition hover:bg-dangerSoft" href="/admin/nuke">Delete All Data</a>
-            <a class="rounded-2xl border border-line bg-white px-5 py-3 text-base font-semibold text-ink transition hover:bg-slate-50" href="/admin/logout">Log Out</a>
+        <div class="flex items-center gap-3">
+            <a class="whitespace-nowrap rounded-2xl border border-line bg-white px-5 py-3 text-base font-semibold text-ink transition hover:bg-brandSoft" href="{{ export_url }}">Export Results CSV</a>
+            <a class="whitespace-nowrap rounded-2xl border border-rose-200 bg-white px-5 py-3 text-base font-semibold text-rose-700 transition hover:bg-dangerSoft" href="/admin/nuke">Delete All Data</a>
+            <a class="whitespace-nowrap rounded-2xl border border-line bg-white px-5 py-3 text-base font-semibold text-ink transition hover:bg-slate-50" href="/admin/logout">Log Out</a>
         </div>
     </div>
 
@@ -108,14 +107,25 @@
                 <p class="mt-3 text-sm text-muted">CSV must include <span class="font-semibold text-ink">name</span> and <span class="font-semibold text-ink">class</span> columns in any order. Codes are generated automatically during import. If voter records already exist, check the replacement box to confirm overwriting them.</p>
             </form>
 
-            <div class="mt-6 overflow-hidden rounded-[24px] border border-line">
+            {% if distinct_classes %}
+            <div class="mt-6 flex flex-wrap items-center gap-2" id="class-pills">
+                <button class="rounded-xl px-4 py-2 text-sm font-semibold transition bg-brand text-white" type="button" data-class-filter="">All</button>
+                {% for cls in distinct_classes %}
+                <button class="rounded-xl px-4 py-2 text-sm font-semibold transition border border-line bg-white text-ink hover:bg-brandSoft" type="button" data-class-filter="{{ cls }}">{{ cls }}</button>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="mt-4 overflow-hidden rounded-[24px] border border-line">
                 <div class="flex items-center justify-between border-b border-line bg-[#f7f9fc] px-4 py-3">
                     <div class="flex items-center gap-3">
-                        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-muted">Voter List</p>
+                        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-muted" id="voter-list-label">All Voters</p>
+                        <span class="rounded-full bg-brandSoft px-2.5 py-1 text-xs font-bold text-brand" id="voter-count">{{ voters|length }}</span>
                         <form method="post" action="/admin/voters/reset-all-codes" onsubmit="return confirm('Reset codes for ALL voters? This cannot be undone.')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                             <button class="rounded-xl border border-[#9dd7f4] px-3 py-2 text-xs font-semibold text-brand hover:bg-brandSoft" type="submit">Reset All Codes</button>
                         </form>
+                        <a class="rounded-xl border border-line px-3 py-2 text-xs font-semibold text-ink hover:bg-brandSoft" id="voter-export-link" href="{{ voter_export_base_url }}">Export CSV</a>
                     </div>
                     <form method="get" action="/admin" class="flex items-center gap-3">
                         <label class="text-sm font-semibold text-muted" for="sort">Order by</label>
@@ -138,7 +148,7 @@
                     </thead>
                     <tbody class="bg-white">
                         {% for voter in voters %}
-                        <tr class="border-b border-line align-top last:border-b-0">
+                        <tr class="border-b border-line align-top last:border-b-0" data-class="{{ voter.class_name }}">
                             <td class="px-3 py-4 text-base font-semibold text-ink">{{ voter.name }}</td>
                             <td class="px-3 py-4 text-base text-muted">{{ voter.class_name }}</td>
                             <td class="px-3 py-4">
@@ -191,5 +201,43 @@
             }
         });
     });
+
+    (function () {
+        const pills = document.querySelectorAll("[data-class-filter]");
+        if (!pills.length) return;
+
+        const rows = document.querySelectorAll("tbody tr[data-class]");
+        const label = document.getElementById("voter-list-label");
+        const count = document.getElementById("voter-count");
+        const exportLink = document.getElementById("voter-export-link");
+        const baseExportUrl = "{{ voter_export_base_url }}";
+        const activeCls = "bg-brand text-white";
+        const inactiveCls = "border border-line bg-white text-ink hover:bg-brandSoft";
+
+        function applyFilter(filterValue) {
+            let visible = 0;
+            rows.forEach((row) => {
+                const show = !filterValue || row.dataset.class === filterValue;
+                row.style.display = show ? "" : "none";
+                if (show) visible++;
+            });
+
+            label.textContent = filterValue || "All Voters";
+            count.textContent = visible;
+            exportLink.href = filterValue
+                ? baseExportUrl + "&class_name=" + encodeURIComponent(filterValue)
+                : baseExportUrl;
+
+            pills.forEach((pill) => {
+                const isActive = pill.dataset.classFilter === filterValue;
+                pill.className = "rounded-xl px-4 py-2 text-sm font-semibold transition " +
+                    (isActive ? activeCls : inactiveCls);
+            });
+        }
+
+        pills.forEach((pill) => {
+            pill.addEventListener("click", () => applyFilter(pill.dataset.classFilter));
+        });
+    })();
 </script>
 {% endblock %}

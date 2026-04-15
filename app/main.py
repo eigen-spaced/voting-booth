@@ -28,11 +28,13 @@ from app.crud import (
     delete_voter,
     get_candidate,
     get_candidates_by_category,
+    get_distinct_classes,
     get_election_stats,
     get_results,
     get_results_by_category,
     get_voter_names,
     get_voters,
+    get_voters_by_class,
     import_candidates,
     import_voters,
     nuke_all_records,
@@ -160,9 +162,10 @@ def admin_dashboard_context(request: Request, db: Session, sort_by: str) -> dict
         "candidates_by_category": get_candidates_by_category(db),
         "results_by_category": get_results_by_category(db),
         "export_url": f"/admin/export?key={ADMIN_SECRET_KEY}",
-        "voter_export_url": f"/admin/voters/export?key={ADMIN_SECRET_KEY}",
+        "voter_export_base_url": f"/admin/voters/export?key={ADMIN_SECRET_KEY}",
         "code_digits": VOTER_CODE_DIGITS,
         "voter_sort": normalized_sort,
+        "distinct_classes": get_distinct_classes(db),
         "disable_cache": True,
     }
 
@@ -404,21 +407,32 @@ def export_results(request: Request, key: str = Query(...), db: Session = Depend
 
 
 @app.get("/admin/voters/export")
-def export_voters(request: Request, key: str = Query(...), db: Session = Depends(get_db)):
+def export_voters(
+    request: Request,
+    key: str = Query(...),
+    class_name: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
     if not ensure_admin_session(request):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin session required.")
     if not compare_digest(key, ADMIN_SECRET_KEY):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid admin key.")
 
+    if class_name:
+        voters = get_voters_by_class(db, class_name)
+    else:
+        voters = get_voters(db)
+
     output = io.StringIO()
     import csv
     writer = csv.writer(output)
     writer.writerow(["Name", "Class", "Code", "Has Voted", "Voted At"])
-    for voter in get_voters(db):
+    for voter in voters:
         writer.writerow([voter.name, voter.class_name, voter.code, "Yes" if voter.has_voted else "No", voter.voted_at.isoformat() if voter.voted_at else ""])
 
+    filename = f"voters_{class_name}.csv" if class_name else "voters.csv"
     response = StreamingResponse(iter([output.getvalue()]), media_type="text/csv")
-    response.headers["Content-Disposition"] = 'attachment; filename="voters.csv"'
+    response.headers["Content-Disposition"] = f'attachment; filename="{filename}"'
     return apply_no_store(response)
 
 

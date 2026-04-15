@@ -106,6 +106,22 @@ def get_voters(db: Session, sort_by: str = "class") -> Sequence[Voter]:
     return db.execute(select(Voter).order_by(*ordering)).scalars().all()
 
 
+def get_voters_by_class(db: Session, class_name: str, sort_by: str = "class") -> Sequence[Voter]:
+    if sort_by == "name":
+        ordering = (Voter.name.asc(), Voter.class_name.asc())
+    else:
+        ordering = (Voter.class_name.asc(), Voter.name.asc())
+    return db.execute(
+        select(Voter).where(Voter.class_name == class_name).order_by(*ordering)
+    ).scalars().all()
+
+
+def get_distinct_classes(db: Session) -> list[str]:
+    return db.execute(
+        select(Voter.class_name).distinct().order_by(Voter.class_name.asc())
+    ).scalars().all()
+
+
 def get_voter_names(db: Session) -> list[str]:
     return db.execute(select(Voter.name).order_by(Voter.name.asc())).scalars().all()
 
