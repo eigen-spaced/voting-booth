@@ -28,11 +28,13 @@ from app.crud import (
     delete_voter,
     get_candidate,
     get_candidates_by_category,
+    get_election_stats,
     get_results,
     get_results_by_category,
     get_voter_names,
     get_voters,
     import_voters,
+    nuke_all_records,
     parse_voter_csv,
     record_vote,
     reset_all_voter_codes,
@@ -532,6 +534,40 @@ def admin_reset_voter_code(
     try:
         voter, code = reset_voter_code(db, voter_id, VOTER_CODE_DIGITS)
         set_admin_notice(request, f'Code reset for "{voter.name}". New code: {code}')
+    except AdminActionError as exc:
+        set_admin_notice(request, str(exc), "error")
+    return RedirectResponse("/admin", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.get("/admin/nuke", response_class=HTMLResponse)
+def admin_nuke_confirm(request: Request, db: Session = Depends(get_db)):
+    if not ensure_admin_session(request):
+        return apply_no_store(RedirectResponse("/admin/login", status_code=status.HTTP_303_SEE_OTHER))
+    stats = get_election_stats(db)
+    return apply_no_store(templates.TemplateResponse(
+        "admin_nuke_confirm.html",
+        {
+            "request": request,
+            "csrf_token": get_admin_csrf_token(request),
+            "stats": stats,
+            "disable_cache": True,
+        },
+    ))
+
+
+@app.post("/admin/nuke")
+def admin_nuke_execute(
+    request: Request,
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    validate_admin_request(request, csrf_token)
+    try:
+        stats = nuke_all_records(db)
+        set_admin_notice(
+            request,
+            f"All records deleted: {stats['voter_count']} voters, {stats['candidate_count']} candidates, {stats['vote_count']} votes removed.",
+        )
     except AdminActionError as exc:
         set_admin_notice(request, str(exc), "error")
     return RedirectResponse("/admin", status_code=status.HTTP_303_SEE_OTHER)

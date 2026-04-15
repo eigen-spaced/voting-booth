@@ -221,6 +221,32 @@ def parse_voter_csv(content: bytes, code_digits: int) -> list[tuple[str, str, st
     return voters
 
 
+def get_election_stats(db: Session) -> dict:
+    voter_count = db.execute(select(func.count(Voter.id))).scalar_one()
+    candidate_count = db.execute(select(func.count(Candidate.id))).scalar_one()
+    vote_count = db.execute(select(func.count(Vote.id))).scalar_one()
+    voted_count = db.execute(select(func.count(Voter.id)).where(Voter.has_voted.is_(True))).scalar_one()
+    return {
+        "voter_count": voter_count,
+        "candidate_count": candidate_count,
+        "vote_count": vote_count,
+        "voted_count": voted_count,
+    }
+
+
+def nuke_all_records(db: Session) -> dict:
+    stats = get_election_stats(db)
+    try:
+        db.execute(delete(Vote))
+        db.execute(delete(Voter))
+        db.execute(delete(Candidate))
+        db.commit()
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise AdminActionError("Failed to delete all records.") from exc
+    return stats
+
+
 def import_voters(db: Session, voters: list[tuple[str, str, str]], replace_existing: bool) -> int:
     existing_voter_count = db.execute(select(func.count(Voter.id))).scalar_one()
     existing_vote_count = db.execute(select(func.count(Vote.id))).scalar_one()

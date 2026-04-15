@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mx-auto max-w-2xl text-center">
+    <p class="text-sm font-semibold uppercase tracking-[0.35em] text-rose-600">Danger Zone</p>
+    <h1 class="mt-4 font-display text-4xl leading-tight text-ink md:text-5xl">Delete all election data</h1>
+    <p class="mt-4 text-lg leading-8 text-muted">You are about to permanently delete every record in the system. This action cannot be undone.</p>
+
+    <div class="mt-10 rounded-[24px] border border-rose-200 bg-dangerSoft p-6 text-left">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-rose-700">The following will be deleted</p>
+        <ul class="mt-4 space-y-3 text-base text-rose-700">
+            <li class="flex items-center gap-3">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-sm font-bold text-rose-700">{{ stats.voter_count }}</span>
+                <span>Voter record{{ 's' if stats.voter_count != 1 else '' }}{% if stats.voted_count %} <span class="font-semibold">({{ stats.voted_count }} already voted)</span>{% endif %}</span>
+            </li>
+            <li class="flex items-center gap-3">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-sm font-bold text-rose-700">{{ stats.candidate_count }}</span>
+                <span>Candidate record{{ 's' if stats.candidate_count != 1 else '' }}</span>
+            </li>
+            <li class="flex items-center gap-3">
+                <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-rose-100 text-sm font-bold text-rose-700">{{ stats.vote_count }}</span>
+                <span>Cast vote{{ 's' if stats.vote_count != 1 else '' }}</span>
+            </li>
+        </ul>
+    </div>
+
+    <div class="mt-6 rounded-[24px] border border-amber-200 bg-warningSoft p-6 text-left">
+        <p class="text-sm font-semibold uppercase tracking-[0.2em] text-amber-800">What this means</p>
+        <ul class="mt-4 space-y-2 text-base text-amber-800">
+            <li>All election results will be permanently lost.</li>
+            <li>All voter accounts and their codes will be removed.</li>
+            <li>All candidates will be removed from every category.</li>
+            <li>The system will be completely reset to a blank state.</li>
+        </ul>
+    </div>
+
+    <div class="mt-10 grid gap-4 md:grid-cols-2">
+        <a class="rounded-2xl border border-line bg-white px-6 py-4 text-lg font-bold text-ink transition hover:bg-slate-50" href="/admin">
+            Cancel
+        </a>
+        <form method="post" action="/admin/nuke">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="w-full rounded-2xl bg-rose-600 px-6 py-4 text-lg font-bold text-white transition hover:bg-rose-700" type="submit">
+                Delete Everything
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
