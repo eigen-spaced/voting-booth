@@ -34,6 +34,25 @@
                 <input class="min-w-0 flex-1 rounded-2xl border border-line bg-[#fbfcfe] px-4 py-3 text-base text-ink outline-none focus:border-brand focus:ring-4 focus:ring-brand/10" name="candidate_name" placeholder="Add candidate" required>
                 <button class="rounded-2xl bg-brand px-5 py-3 text-base font-bold text-white" type="submit">Add</button>
             </form>
+            <div class="mt-5 grid grid-cols-2 gap-3">
+                {% for category in candidate_categories %}
+                <form class="rounded-[20px] border border-line bg-[#fbfcfe] p-4" method="post" action="/admin/candidates/import" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" name="candidate_import_category" value="{{ category }}">
+                    <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-muted">Import {{ category }} CSV</label>
+                    <input class="w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none file:mr-3 file:rounded-lg file:border-0 file:bg-brandSoft file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-ink" name="candidate_file" type="file" accept=".csv,text/csv" required>
+                    <div class="mt-2 flex items-center justify-between gap-3">
+                        <label class="flex items-center gap-2 text-xs text-ink">
+                            <input class="h-3.5 w-3.5 accent-brand" type="checkbox" name="replace_existing_candidates" value="yes">
+                            Replace existing
+                        </label>
+                        <button class="rounded-2xl bg-ink px-5 py-3 text-base font-bold text-white" type="submit">Import CSV</button>
+                    </div>
+                    <p class="mt-2 text-xs text-muted">CSV with a <span class="font-semibold text-ink">name</span> column.</p>
+                </form>
+                {% endfor %}
+            </div>
+
             <div class="mt-6 space-y-6">
                 {% for category in candidate_categories %}
                 <div>
