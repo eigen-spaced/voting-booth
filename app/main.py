@@ -554,12 +554,17 @@ def remove_admin_voter(
 def admin_reset_all_voter_codes(
     request: Request,
     csrf_token: str = Form(...),
+    reset_class: str | None = Form(None),
     db: Session = Depends(get_db),
 ):
     validate_admin_request(request, csrf_token)
+    class_filter = reset_class.strip() if reset_class else None
     try:
-        count = reset_all_voter_codes(db, VOTER_CODE_DIGITS)
-        set_admin_notice(request, f"All codes reset. {count} voter(s) updated.")
+        count = reset_all_voter_codes(db, VOTER_CODE_DIGITS, class_filter)
+        if class_filter:
+            set_admin_notice(request, f"Codes reset for {class_filter}. {count} voter(s) updated.")
+        else:
+            set_admin_notice(request, f"All codes reset. {count} voter(s) updated.")
     except AdminActionError as exc:
         set_admin_notice(request, str(exc), "error")
     return RedirectResponse("/admin", status_code=status.HTTP_303_SEE_OTHER)

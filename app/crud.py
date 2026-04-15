@@ -193,8 +193,11 @@ def reset_voter_code(db: Session, voter_id: int, code_digits: int) -> tuple[Vote
     return voter, code
 
 
-def reset_all_voter_codes(db: Session, code_digits: int) -> int:
-    voters = db.execute(select(Voter)).scalars().all()
+def reset_all_voter_codes(db: Session, code_digits: int, class_name: str | None = None) -> int:
+    query = select(Voter)
+    if class_name:
+        query = query.where(Voter.class_name == class_name)
+    voters = db.execute(query).scalars().all()
     if not voters:
         raise AdminActionError("No voters to reset.")
     count = 0

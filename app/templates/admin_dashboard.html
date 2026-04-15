@@ -121,9 +121,10 @@
                     <div class="flex items-center gap-3">
                         <p class="text-sm font-semibold uppercase tracking-[0.18em] text-muted" id="voter-list-label">All Voters</p>
                         <span class="rounded-full bg-brandSoft px-2.5 py-1 text-xs font-bold text-brand" id="voter-count">{{ voters|length }}</span>
-                        <form method="post" action="/admin/voters/reset-all-codes" onsubmit="return confirm('Reset codes for ALL voters? This cannot be undone.')">
+                        <form id="reset-codes-form" method="post" action="/admin/voters/reset-all-codes" onsubmit="return confirm(this.dataset.confirmMsg || 'Reset codes for ALL voters? This cannot be undone.')">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-                            <button class="rounded-xl border border-[#9dd7f4] px-3 py-2 text-xs font-semibold text-brand hover:bg-brandSoft" type="submit">Reset All Codes</button>
+                            <input type="hidden" name="reset_class" id="reset-class-input" value="">
+                            <button class="rounded-xl border border-[#9dd7f4] px-3 py-2 text-xs font-semibold text-brand hover:bg-brandSoft" type="submit" id="reset-codes-btn">Reset All Codes</button>
                         </form>
                         <a class="rounded-xl border border-line px-3 py-2 text-xs font-semibold text-ink hover:bg-brandSoft" id="voter-export-link" href="{{ voter_export_base_url }}">Export CSV</a>
                     </div>
@@ -210,6 +211,9 @@
         const label = document.getElementById("voter-list-label");
         const count = document.getElementById("voter-count");
         const exportLink = document.getElementById("voter-export-link");
+        const resetForm = document.getElementById("reset-codes-form");
+        const resetInput = document.getElementById("reset-class-input");
+        const resetBtn = document.getElementById("reset-codes-btn");
         const baseExportUrl = "{{ voter_export_base_url }}";
         const activeCls = "bg-brand text-white";
         const inactiveCls = "border border-line bg-white text-ink hover:bg-brandSoft";
@@ -227,6 +231,15 @@
             exportLink.href = filterValue
                 ? baseExportUrl + "&class_name=" + encodeURIComponent(filterValue)
                 : baseExportUrl;
+
+            resetInput.value = filterValue;
+            if (filterValue) {
+                resetBtn.textContent = "Reset Codes";
+                resetForm.dataset.confirmMsg = "Reset codes for all voters in " + filterValue + "? This cannot be undone.";
+            } else {
+                resetBtn.textContent = "Reset All Codes";
+                resetForm.dataset.confirmMsg = "Reset codes for ALL voters? This cannot be undone.";
+            }
 
             pills.forEach((pill) => {
                 const isActive = pill.dataset.classFilter === filterValue;
