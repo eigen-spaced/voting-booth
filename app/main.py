@@ -33,8 +33,10 @@ from app.crud import (
     get_results_by_category,
     get_voter_names,
     get_voters,
+    import_candidates,
     import_voters,
     nuke_all_records,
+    parse_candidate_csv,
     parse_voter_csv,
     record_vote,
     reset_all_voter_codes,
@@ -432,6 +434,32 @@ def add_admin_candidate(
     try:
         candidate = create_candidate(db, candidate_name.strip(), candidate_category.strip())
         set_admin_notice(request, f'Candidate "{candidate.name}" added to {candidate.category}.')
+    except AdminActionError as exc:
+        set_admin_notice(request, str(exc), "error")
+    return RedirectResponse("/admin", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/admin/candidates/import")
+async def import_admin_candidates(
+    request: Request,
+    candidate_file: UploadFile = File(...),
+    candidate_import_category: str = Form(...),
+    replace_existing_candidates: str | None = Form(None),
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    validate_admin_request(request, csrf_token)
+    if candidate_import_category not in CANDIDATE_CATEGORIES:
+        set_admin_notice(request, "Invalid candidate category.", "error")
+        return RedirectResponse("/admin", status_code=status.HTTP_303_SEE_OTHER)
+    if not candidate_file.filename.lower().endswith(".csv"):
+        set_admin_notice(request, "Only CSV candidate imports are supported.", "error")
+        return RedirectResponse("/admin", status_code=status.HTTP_303_SEE_OTHER)
+
+    try:
+        names = parse_candidate_csv(await candidate_file.read())
+        count = import_candidates(db, names, candidate_import_category, replace_existing_candidates == "yes")
+        set_admin_notice(request, f"Imported {count} {candidate_import_category} candidate(s).")
     except AdminActionError as exc:
         set_admin_notice(request, str(exc), "error")
     return RedirectResponse("/admin", status_code=status.HTTP_303_SEE_OTHER)

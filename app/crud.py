@@ -221,6 +221,74 @@ def parse_voter_csv(content: bytes, code_digits: int) -> list[tuple[str, str, st
     return voters
 
 
+def parse_candidate_csv(content: bytes) -> list[str]:
+    try:
+        text = content.decode("utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise AdminActionError("CSV file must be UTF-8 encoded.") from exc
+
+    reader = csv.DictReader(StringIO(text))
+    if reader.fieldnames is None:
+        raise AdminActionError("CSV file must include a header row.")
+
+    headers = {field.strip().lower(): field for field in reader.fieldnames if field}
+    if "name" not in headers:
+        raise AdminActionError('CSV file must include a "name" column.')
+
+    names: list[str] = []
+    seen: set[str] = set()
+    for row in reader:
+        name = (row.get(headers["name"]) or "").strip()
+        if not name:
+            raise AdminActionError("Every row must include a candidate name.")
+        if name in seen:
+            raise AdminActionError("Candidate names must be unique within the CSV file.")
+        seen.add(name)
+        names.append(name)
+
+    if not names:
+        raise AdminActionError("CSV file does not contain any candidate rows.")
+    return names
+
+
+def import_candidates(db: Session, names: list[str], category: str, replace_existing: bool) -> int:
+    if category not in CANDIDATE_CATEGORIES:
+        raise AdminActionError("Invalid candidate category.")
+
+    existing_count = db.execute(
+        select(func.count(Candidate.id)).where(Candidate.category == category)
+    ).scalar_one()
+
+    if existing_count and not replace_existing:
+        raise AdminActionError(
+            f"{category} candidates already exist. Confirm replacement before importing."
+        )
+
+    if replace_existing:
+        vote_count = db.execute(
+            select(func.count(Vote.id)).where(Vote.category == category)
+        ).scalar_one()
+        if vote_count:
+            raise AdminActionError(
+                f"Cannot replace {category} candidates after votes have been cast in that category."
+            )
+
+    try:
+        if replace_existing:
+            db.execute(delete(Candidate).where(Candidate.category == category))
+        for name in names:
+            db.add(Candidate(name=name, category=category))
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise AdminActionError("Imported candidate names must be unique within the category.") from exc
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise AdminActionError("Failed to import candidate records.") from exc
+
+    return len(names)
+
+
 def get_election_stats(db: Session) -> dict:
     voter_count = db.execute(select(func.count(Voter.id))).scalar_one()
     candidate_count = db.execute(select(func.count(Candidate.id))).scalar_one()
