@@ -35,6 +35,7 @@ from app.crud import (
     import_voters,
     parse_voter_csv,
     record_vote,
+    reset_all_voter_codes,
     reset_voter_code,
 )
 from app.database import Base, engine, ensure_schema, get_db
@@ -67,7 +68,7 @@ def format_dubai_time(value: datetime | None) -> str:
         return "Not recorded"
     dubai_tz = timezone(timedelta(hours=4))
     normalized = value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
-    return normalized.astimezone(dubai_tz).strftime("%H:%M %d/%m/%Y")
+    return normalized.astimezone(dubai_tz).strftime("%I:%M %p %d-%m-%Y")
 
 
 def touch_admin_activity(request: Request) -> None:
@@ -500,6 +501,21 @@ def remove_admin_voter(
     try:
         delete_voter(db, voter_id)
         set_admin_notice(request, "Voter removed.")
+    except AdminActionError as exc:
+        set_admin_notice(request, str(exc), "error")
+    return RedirectResponse("/admin", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.post("/admin/voters/reset-all-codes")
+def admin_reset_all_voter_codes(
+    request: Request,
+    csrf_token: str = Form(...),
+    db: Session = Depends(get_db),
+):
+    validate_admin_request(request, csrf_token)
+    try:
+        count = reset_all_voter_codes(db, VOTER_CODE_DIGITS)
+        set_admin_notice(request, f"All codes reset. {count} voter(s) updated.")
     except AdminActionError as exc:
         set_admin_notice(request, str(exc), "error")
     return RedirectResponse("/admin", status_code=status.HTTP_303_SEE_OTHER)

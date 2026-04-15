@@ -90,7 +90,13 @@
 
             <div class="mt-6 overflow-hidden rounded-[24px] border border-line">
                 <div class="flex items-center justify-between border-b border-line bg-[#f7f9fc] px-4 py-3">
-                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-muted">Voter List</p>
+                    <div class="flex items-center gap-3">
+                        <p class="text-sm font-semibold uppercase tracking-[0.18em] text-muted">Voter List</p>
+                        <form method="post" action="/admin/voters/reset-all-codes" onsubmit="return confirm('Reset codes for ALL voters? This cannot be undone.')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                            <button class="rounded-xl border border-[#9dd7f4] px-3 py-2 text-xs font-semibold text-brand hover:bg-brandSoft" type="submit">Reset All Codes</button>
+                        </form>
+                    </div>
                     <form method="get" action="/admin" class="flex items-center gap-3">
                         <label class="text-sm font-semibold text-muted" for="sort">Order by</label>
                         <select class="rounded-xl border border-line bg-white px-3 py-2 text-sm font-semibold text-ink outline-none focus:border-brand focus:ring-4 focus:ring-brand/10" id="sort" name="sort" onchange="this.form.submit()">

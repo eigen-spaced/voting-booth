@@ -177,6 +177,18 @@ def reset_voter_code(db: Session, voter_id: int, code_digits: int) -> tuple[Vote
     return voter, code
 
 
+def reset_all_voter_codes(db: Session, code_digits: int) -> int:
+    voters = db.execute(select(Voter)).scalars().all()
+    if not voters:
+        raise AdminActionError("No voters to reset.")
+    count = 0
+    for voter in voters:
+        voter.code = "".join(secrets.choice("0123456789") for _ in range(code_digits))
+        count += 1
+    db.commit()
+    return count
+
+
 def parse_voter_csv(content: bytes, code_digits: int) -> list[tuple[str, str, str]]:
     try:
         text = content.decode("utf-8-sig")
