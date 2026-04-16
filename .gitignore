@@ -10,6 +10,8 @@ voter_creds.txt
 results.csv
 voters.csv
 
+data/
+
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
