@@ -12,6 +12,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models import CANDIDATE_CATEGORIES, Candidate, Vote, Voter
+
+
+def generate_voter_code(length: int) -> str:
+    first = secrets.choice("123456789")
+    rest = "".join(secrets.choice("0123456789") for _ in range(length - 1))
+    return first + rest
+
+
 class AlreadyVotedError(Exception):
     pass
 
@@ -98,6 +106,19 @@ def get_results_by_category(db: Session) -> dict[str, list[tuple[str, int]]]:
     return grouped
 
 
+def get_candidates_with_votes(db: Session) -> dict[str, list[tuple[Candidate, int]]]:
+    rows = db.execute(
+        select(Candidate, func.count(Vote.id).label("vote_count"))
+        .outerjoin(Vote, Vote.candidate_id == Candidate.id)
+        .group_by(Candidate.id)
+        .order_by(Candidate.category.asc(), func.count(Vote.id).desc(), Candidate.name.asc())
+    ).all()
+    grouped: dict[str, list[tuple[Candidate, int]]] = {category: [] for category in CANDIDATE_CATEGORIES}
+    for candidate, vote_count in rows:
+        grouped.setdefault(candidate.category, []).append((candidate, vote_count))
+    return grouped
+
+
 def get_voters(db: Session, sort_by: str = "class") -> Sequence[Voter]:
     if sort_by == "name":
         ordering = (Voter.name.asc(), Voter.class_name.asc())
@@ -160,7 +181,7 @@ def create_voter(db: Session, name: str, class_name: str, code_digits: int) -> t
         raise AdminActionError("Voter name cannot be blank.")
     if not class_name:
         raise AdminActionError("Class cannot be blank.")
-    code = "".join(secrets.choice("0123456789") for _ in range(code_digits))
+    code = generate_voter_code(code_digits)
     voter = Voter(name=name, class_name=class_name, code=code, has_voted=False, voted_at=None)
     db.add(voter)
     try:
@@ -186,7 +207,7 @@ def reset_voter_code(db: Session, voter_id: int, code_digits: int) -> tuple[Vote
     voter = db.execute(select(Voter).where(Voter.id == voter_id)).scalar_one_or_none()
     if voter is None:
         raise AdminActionError("Voter not found.")
-    code = "".join(secrets.choice("0123456789") for _ in range(code_digits))
+    code = generate_voter_code(code_digits)
     voter.code = code
     db.commit()
     db.refresh(voter)
@@ -202,7 +223,7 @@ def reset_all_voter_codes(db: Session, code_digits: int, class_name: str | None 
         raise AdminActionError("No voters to reset.")
     count = 0
     for voter in voters:
-        voter.code = "".join(secrets.choice("0123456789") for _ in range(code_digits))
+        voter.code = generate_voter_code(code_digits)
         count += 1
     db.commit()
     return count
@@ -232,7 +253,7 @@ def parse_voter_csv(content: bytes, code_digits: int) -> list[tuple[str, str, st
         if name in seen_names:
             raise AdminActionError("Voter names must be unique within the CSV file.")
         seen_names.add(name)
-        code = "".join(secrets.choice("0123456789") for _ in range(code_digits))
+        code = generate_voter_code(code_digits)
         voters.append((name, class_name, code))
 
     if not voters:

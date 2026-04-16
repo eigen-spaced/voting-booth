@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="space-y-8">
-    <div class="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+    <div class="flex flex-col gap-5">
         <div>
             <div class="flex items-center gap-4">
                 <img src="/static/isd-logo.png" alt="Indian School Darsait" class="h-14 w-14">
                 <p class="text-sm font-semibold uppercase tracking-[0.35em] text-brand">Admin Dashboard</p>
             </div>
-            <h1 class="mt-3 font-display text-5xl leading-tight text-ink md:text-5xl">Student Council Election management</h1>
+            <h1 class="mt-3 font-display text-5xl leading-tight text-ink md:text-5xl">Student Council Election Management</h1>
             <p class="mt-3 text-lg text-muted">Signed in as <span class="font-semibold text-ink">{{ admin_username }}</span>.</p>
         </div>
-        <div class="flex items-center gap-3">
-            <a class="whitespace-nowrap rounded-2xl border border-line bg-white px-5 py-3 text-base font-semibold text-ink transition hover:bg-brandSoft" href="{{ export_url }}">Export Results CSV</a>
-            <a class="whitespace-nowrap rounded-2xl border border-rose-200 bg-white px-5 py-3 text-base font-semibold text-rose-700 transition hover:bg-dangerSoft" href="/admin/nuke">Delete All Data</a>
-            <a class="whitespace-nowrap rounded-2xl border border-line bg-white px-5 py-3 text-base font-semibold text-ink transition hover:bg-slate-50" href="/admin/logout">Log Out</a>
+        <div class="flex flex-wrap items-center gap-3">
+            <a class="rounded-2xl border border-line bg-white px-5 py-3 text-base font-semibold text-ink transition hover:bg-brandSoft" href="{{ export_url }}">Export Results CSV</a>
+            <a class="rounded-2xl border border-rose-200 bg-white px-5 py-3 text-base font-semibold text-rose-700 transition hover:bg-dangerSoft" href="/admin/nuke">Delete All Data</a>
+            <a class="rounded-2xl border border-line bg-white px-5 py-3 text-base font-semibold text-ink transition hover:bg-slate-50" href="/admin/logout">Log Out</a>
         </div>
     </div>
 
@@ -23,7 +23,7 @@
     </div>
     {% endif %}
 
-    <div class="grid gap-6 2xl:grid-cols-[360px_minmax(0,1fr)]">
+    <div class="grid gap-6">
         <section class="rounded-[28px] border border-line bg-white p-6 shadow-sm">
             <p class="text-sm font-semibold uppercase tracking-[0.3em] text-brand">Candidates</p>
             <form class="mt-5 flex gap-3" method="post" action="/admin/candidates">
@@ -60,13 +60,11 @@
                 <div>
                     <p class="text-lg font-bold uppercase tracking-[0.2em] text-brand">{{ category }}</p>
                     <div class="mt-3 space-y-3">
-                        {% for candidate in candidates_by_category[category] %}
+                        {% for candidate, vote_count in candidates_with_votes[category] %}
                         <div class="flex items-center justify-between gap-3 rounded-[22px] border border-line bg-[#fbfcfe] px-4 py-5">
                             <div class="flex items-center gap-4">
                                 <p class="text-xl font-semibold text-ink">{{ candidate.name }}</p>
-                                {% for result_name, total_votes in results_by_category[category] if result_name == candidate.name %}
-                                <p class="text-base font-bold text-brand">{{ total_votes }} votes</p>
-                                {% endfor %}
+                                <p class="text-base font-bold text-brand">{{ vote_count }} vote{{ 's' if vote_count != 1 else '' }}</p>
                             </div>
                             <form method="post" action="/admin/candidates/{{ candidate.id }}/delete">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

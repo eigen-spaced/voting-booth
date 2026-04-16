@@ -1,5 +1,3 @@
-import secrets
-
 from sqlalchemy import text
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -29,8 +27,9 @@ def ensure_schema() -> None:
             connection.execute(text("ALTER TABLE voters ADD COLUMN code TEXT"))
         connection.execute(text("UPDATE voters SET class_name = 'Unassigned' WHERE class_name IS NULL OR TRIM(class_name) = ''"))
         missing_codes = connection.execute(text("SELECT id FROM voters WHERE code IS NULL OR TRIM(code) = ''")).fetchall()
+        from app.crud import generate_voter_code
         for row in missing_codes:
-            code = "".join(secrets.choice("0123456789") for _ in range(VOTER_CODE_DIGITS))
+            code = generate_voter_code(VOTER_CODE_DIGITS)
             connection.execute(
                 text("UPDATE voters SET code = :code WHERE id = :voter_id"),
                 {"code": code, "voter_id": row[0]},

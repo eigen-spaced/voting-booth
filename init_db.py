@@ -3,6 +3,7 @@ import secrets
 from pathlib import Path
 
 from app.config import CREDENTIALS_PATH, DATABASE_PATH, VOTER_CODE_DIGITS
+from app.crud import generate_voter_code
 from app.database import Base, SessionLocal, engine
 from app.models import HEAD_BOY, HEAD_GIRL, Candidate, Voter
 
@@ -30,9 +31,8 @@ DEFAULT_VOTERS = [
 ]
 
 
-def generate_code(length: int = 6) -> str:
-    digits = "0123456789"
-    return "".join(secrets.choice(digits) for _ in range(length))
+def generate_code(length: int = VOTER_CODE_DIGITS) -> str:
+    return generate_voter_code(length)
 
 
 def reset_database() -> None:
@@ -51,8 +51,8 @@ def build_voters(voter_count: int) -> list[tuple[str, str]]:
     return voters
 
 
-def seed_database(candidates: list[tuple[str, str]], voter_count: int, code_digits: int) -> list[tuple[str, str]]:
-    credentials: list[tuple[str, str]] = []
+def seed_database(candidates: list[tuple[str, str]], voter_count: int, code_digits: int) -> list[tuple[str, str, str]]:
+    credentials: list[tuple[str, str, str]] = []
     voters = build_voters(voter_count)
     with SessionLocal() as db:
         for category, name in candidates:
@@ -61,15 +61,16 @@ def seed_database(candidates: list[tuple[str, str]], voter_count: int, code_digi
         for voter_name, class_name in voters:
             code = generate_code(code_digits)
             db.add(Voter(name=voter_name, class_name=class_name, code=code))
-            credentials.append((voter_name, code))
+            credentials.append((voter_name, class_name, code))
 
         db.commit()
     return credentials
 
 
-def export_credentials(credentials: list[tuple[str, str]], destination: Path) -> None:
-    lines = ["Voting Booth Voter Credentials", "=" * 32, ""]
-    lines.extend(f"{name}: {code}" for name, code in credentials)
+def export_credentials(credentials: list[tuple[str, str, str]], destination: Path) -> None:
+    lines = ["ISD Student Council Election — Voter Credentials", "=" * 50, ""]
+    for name, class_name, code in credentials:
+        lines.append(f"{name} ({class_name}): {code}")
     _ = destination.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
