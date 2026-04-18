@@ -397,9 +397,9 @@ def export_results(request: Request, key: str = Query(...), db: Session = Depend
     output = io.StringIO()
     import csv
     writer = csv.writer(output)
-    writer.writerow(["Candidate Name", "Category", "Total Votes"])
-    for category, candidate_name, total_votes in get_results(db):
-        writer.writerow([candidate_name, category, total_votes])
+    writer.writerow(["Candidate Name", "Category", "Class", "Total Votes"])
+    for category, candidate_name, class_name, total_votes in get_results(db):
+        writer.writerow([candidate_name, category, class_name, total_votes])
 
     response = StreamingResponse(iter([output.getvalue()]), media_type="text/csv")
     response.headers["Content-Disposition"] = 'attachment; filename="results.csv"'
@@ -441,12 +441,13 @@ def add_admin_candidate(
     request: Request,
     candidate_name: str = Form(...),
     candidate_category: str = Form(...),
+    candidate_class: str = Form(...),
     csrf_token: str = Form(...),
     db: Session = Depends(get_db),
 ):
     validate_admin_request(request, csrf_token)
     try:
-        candidate = create_candidate(db, candidate_name.strip(), candidate_category.strip())
+        candidate = create_candidate(db, candidate_name.strip(), candidate_category.strip(), candidate_class.strip())
         set_admin_notice(request, f'Candidate "{candidate.name}" added to {candidate.category}.')
     except AdminActionError as exc:
         set_admin_notice(request, str(exc), "error")
@@ -471,8 +472,8 @@ async def import_admin_candidates(
         return RedirectResponse("/admin", status_code=status.HTTP_303_SEE_OTHER)
 
     try:
-        names = parse_candidate_csv(await candidate_file.read())
-        count = import_candidates(db, names, candidate_import_category, replace_existing_candidates == "yes")
+        candidate_rows = parse_candidate_csv(await candidate_file.read())
+        count = import_candidates(db, candidate_rows, candidate_import_category, replace_existing_candidates == "yes")
         set_admin_notice(request, f"Imported {count} {candidate_import_category} candidate(s).")
     except AdminActionError as exc:
         set_admin_notice(request, str(exc), "error")

@@ -29,6 +29,7 @@ class Candidate(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     category: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    class_name: Mapped[str] = mapped_column(String(20), nullable=False, default="Unassigned")
     votes: Mapped[list["Vote"]] = relationship(back_populates="candidate")
 
 

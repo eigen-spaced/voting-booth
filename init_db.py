@@ -9,12 +9,12 @@ from app.models import HEAD_BOY, HEAD_GIRL, Candidate, Voter
 
 
 DEFAULT_CANDIDATES = [
-    (HEAD_BOY, "Adam Carter"),
-    (HEAD_BOY, "Benjamin Scott"),
-    (HEAD_BOY, "Daniel Young"),
-    (HEAD_GIRL, "Ava Collins"),
-    (HEAD_GIRL, "Grace Mitchell"),
-    (HEAD_GIRL, "Mia Turner"),
+    (HEAD_BOY, "Adam Carter", "12A"),
+    (HEAD_BOY, "Benjamin Scott", "12B"),
+    (HEAD_BOY, "Daniel Young", "12A"),
+    (HEAD_GIRL, "Ava Collins", "12A"),
+    (HEAD_GIRL, "Grace Mitchell", "12C"),
+    (HEAD_GIRL, "Mia Turner", "12B"),
 ]
 
 DEFAULT_VOTERS = [
@@ -51,12 +51,12 @@ def build_voters(voter_count: int) -> list[tuple[str, str]]:
     return voters
 
 
-def seed_database(candidates: list[tuple[str, str]], voter_count: int, code_digits: int) -> list[tuple[str, str, str]]:
+def seed_database(candidates: list[tuple[str, str, str]], voter_count: int, code_digits: int) -> list[tuple[str, str, str]]:
     credentials: list[tuple[str, str, str]] = []
     voters = build_voters(voter_count)
     with SessionLocal() as db:
-        for category, name in candidates:
-            db.add(Candidate(name=name, category=category))
+        for category, name, class_name in candidates:
+            db.add(Candidate(name=name, category=category, class_name=class_name))
 
         for voter_name, class_name in voters:
             code = generate_code(code_digits)
@@ -80,7 +80,7 @@ def parse_args() -> argparse.Namespace:
         "--candidate",
         dest="candidates",
         action="append",
-        help='Candidate in the format "Head Boy:Name" or "Head Girl:Name". Pass multiple times to define the ballot.',
+        help='Candidate in the format "Head Boy:Name:Class" or "Head Girl:Name:Class". Pass multiple times to define the ballot.',
     )
     _ = parser.add_argument("--voters", type=int, default=10, help="Number of voter accounts to generate.")
     _ = parser.add_argument("--code-digits", type=int, default=VOTER_CODE_DIGITS, help="Number of digits to use for each voting code.")
@@ -90,12 +90,12 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     if args.candidates:
-        candidates: list[tuple[str, str]] = []
+        candidates: list[tuple[str, str, str]] = []
         for raw_candidate in args.candidates:
-            category, separator, name = raw_candidate.partition(":")
-            if not separator or category.strip() not in {HEAD_BOY, HEAD_GIRL} or not name.strip():
-                raise ValueError('Candidates must use the format "Head Boy:Name" or "Head Girl:Name".')
-            candidates.append((category.strip(), name.strip()))
+            parts = [p.strip() for p in raw_candidate.split(":", 2)]
+            if len(parts) != 3 or parts[0] not in {HEAD_BOY, HEAD_GIRL} or not parts[1] or not parts[2]:
+                raise ValueError('Candidates must use the format "Head Boy:Name:Class" or "Head Girl:Name:Class".')
+            candidates.append((parts[0], parts[1], parts[2]))
     else:
         candidates = DEFAULT_CANDIDATES
     if args.code_digits < 4:

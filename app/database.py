@@ -35,6 +35,11 @@ def ensure_schema() -> None:
                 {"code": code, "voter_id": row[0]},
             )
 
+        candidate_columns = {row[1] for row in connection.execute(text("PRAGMA table_info(candidates)"))}
+        if "class_name" not in candidate_columns:
+            connection.execute(text("ALTER TABLE candidates ADD COLUMN class_name TEXT"))
+            connection.execute(text("UPDATE candidates SET class_name = 'Unassigned' WHERE class_name IS NULL OR TRIM(class_name) = ''"))
+
 
 def get_db():
     db = SessionLocal()

@@ -89,19 +89,19 @@ def record_vote(db: Session, voter_id: int, selections: dict[str, int]) -> None:
         raise RuntimeError("Failed to record vote.") from exc
 
 
-def get_results(db: Session) -> list[tuple[str, str, int]]:
+def get_results(db: Session) -> list[tuple[str, str, str, int]]:
     rows = db.execute(
-        select(Candidate.category, Candidate.name, func.count(Vote.id))
+        select(Candidate.category, Candidate.name, Candidate.class_name, func.count(Vote.id))
         .outerjoin(Vote, Vote.candidate_id == Candidate.id)
-        .group_by(Candidate.id, Candidate.category, Candidate.name)
+        .group_by(Candidate.id, Candidate.category, Candidate.name, Candidate.class_name)
         .order_by(Candidate.category.asc(), Candidate.name.asc())
     ).all()
-    return [(category, name, total) for category, name, total in rows]
+    return [(category, name, class_name, total) for category, name, class_name, total in rows]
 
 
 def get_results_by_category(db: Session) -> dict[str, list[tuple[str, int]]]:
     grouped = {category: [] for category in CANDIDATE_CATEGORIES}
-    for category, name, total in get_results(db):
+    for category, name, _class_name, total in get_results(db):
         grouped.setdefault(category, []).append((name, total))
     return grouped
 
@@ -147,12 +147,14 @@ def get_voter_names(db: Session) -> list[str]:
     return db.execute(select(Voter.name).order_by(Voter.name.asc())).scalars().all()
 
 
-def create_candidate(db: Session, name: str, category: str) -> Candidate:
+def create_candidate(db: Session, name: str, category: str, class_name: str) -> Candidate:
     if not name:
         raise AdminActionError("Candidate name cannot be blank.")
+    if not class_name:
+        raise AdminActionError("Candidate class cannot be blank.")
     if category not in CANDIDATE_CATEGORIES:
         raise AdminActionError("Invalid candidate category.")
-    candidate = Candidate(name=name, category=category)
+    candidate = Candidate(name=name, category=category, class_name=class_name)
     db.add(candidate)
     try:
         db.commit()
@@ -261,7 +263,7 @@ def parse_voter_csv(content: bytes, code_digits: int) -> list[tuple[str, str, st
     return voters
 
 
-def parse_candidate_csv(content: bytes) -> list[str]:
+def parse_candidate_csv(content: bytes) -> list[tuple[str, str]]:
     try:
         text = content.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
@@ -272,37 +274,29 @@ def parse_candidate_csv(content: bytes) -> list[str]:
         raise AdminActionError("CSV file must include a header row.")
 
     headers = {field.strip().lower(): field for field in reader.fieldnames if field}
-    if "name" not in headers:
-        raise AdminActionError('CSV file must include a "name" column.')
+    if "name" not in headers or "class" not in headers:
+        raise AdminActionError('CSV file must include "name" and "class" columns.')
 
-    names: list[str] = []
+    rows: list[tuple[str, str]] = []
     seen: set[str] = set()
     for row in reader:
         name = (row.get(headers["name"]) or "").strip()
-        if not name:
-            raise AdminActionError("Every row must include a candidate name.")
+        class_name = (row.get(headers["class"]) or "").strip()
+        if not name or not class_name:
+            raise AdminActionError("Every row must include both a candidate name and class.")
         if name in seen:
             raise AdminActionError("Candidate names must be unique within the CSV file.")
         seen.add(name)
-        names.append(name)
+        rows.append((name, class_name))
 
-    if not names:
+    if not rows:
         raise AdminActionError("CSV file does not contain any candidate rows.")
-    return names
+    return rows
 
 
-def import_candidates(db: Session, names: list[str], category: str, replace_existing: bool) -> int:
+def import_candidates(db: Session, candidates: list[tuple[str, str]], category: str, replace_existing: bool) -> int:
     if category not in CANDIDATE_CATEGORIES:
         raise AdminActionError("Invalid candidate category.")
-
-    existing_count = db.execute(
-        select(func.count(Candidate.id)).where(Candidate.category == category)
-    ).scalar_one()
-
-    if existing_count and not replace_existing:
-        raise AdminActionError(
-            f"{category} candidates already exist. Confirm replacement before importing."
-        )
 
     if replace_existing:
         vote_count = db.execute(
@@ -316,8 +310,8 @@ def import_candidates(db: Session, names: list[str], category: str, replace_exis
     try:
         if replace_existing:
             db.execute(delete(Candidate).where(Candidate.category == category))
-        for name in names:
-            db.add(Candidate(name=name, category=category))
+        for name, class_name in candidates:
+            db.add(Candidate(name=name, category=category, class_name=class_name))
         db.commit()
     except IntegrityError as exc:
         db.rollback()
@@ -326,7 +320,7 @@ def import_candidates(db: Session, names: list[str], category: str, replace_exis
         db.rollback()
         raise AdminActionError("Failed to import candidate records.") from exc
 
-    return len(names)
+    return len(candidates)
 
 
 def get_election_stats(db: Session) -> dict:
@@ -356,13 +350,10 @@ def nuke_all_records(db: Session) -> dict:
 
 
 def import_voters(db: Session, voters: list[tuple[str, str, str]], replace_existing: bool) -> int:
-    existing_voter_count = db.execute(select(func.count(Voter.id))).scalar_one()
-    existing_vote_count = db.execute(select(func.count(Vote.id))).scalar_one()
-
-    if existing_voter_count and not replace_existing:
-        raise AdminActionError("Voter records already exist. Confirm replacement before importing.")
-    if replace_existing and existing_vote_count:
-        raise AdminActionError("Cannot replace voter records after votes have been cast.")
+    if replace_existing:
+        existing_vote_count = db.execute(select(func.count(Vote.id))).scalar_one()
+        if existing_vote_count:
+            raise AdminActionError("Cannot replace voter records after votes have been cast.")
 
     try:
         if replace_existing:
@@ -372,7 +363,7 @@ def import_voters(db: Session, voters: list[tuple[str, str, str]], replace_exist
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise AdminActionError("Imported voter names must be unique.") from exc
+        raise AdminActionError("Imported voter names must be unique. A name in the CSV may conflict with an existing voter.") from exc
     except SQLAlchemyError as exc:
         db.rollback()
         raise AdminActionError("Failed to import voter records.") from exc
